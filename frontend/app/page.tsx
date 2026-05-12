@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState, useRef, useEffect } from "react";
 import { NewsletterEditor, NewsletterEditorRef } from "@/components/editor/NewsletterEditor";
-import { Loader2, RefreshCw, Sparkles } from "lucide-react";
+import { ExternalLink, Loader2, RefreshCw, Sparkles } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
 import { toast } from "sonner";
@@ -495,6 +495,18 @@ export default function Home() {
                               {article.url}
                             </p>
                           </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 flex-shrink-0 hover:bg-slate-200"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.open(article.url, "_blank", "noopener,noreferrer");
+                            }}
+                            title="기사 원문 보기"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+                          </Button>
                         </div>
                       </CardContent>
                     </Card>

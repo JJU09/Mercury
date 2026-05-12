@@ -63,7 +63,7 @@ export const NewsletterEditor = forwardRef<NewsletterEditorRef, NewsletterEditor
   const [textStyle, setTextStyle] = useState<string>('p');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -74,14 +74,30 @@ export const NewsletterEditor = forwardRef<NewsletterEditorRef, NewsletterEditor
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (editor && typeof reader.result === 'string') {
-        editor.chain().focus().setImage({ src: reader.result }).run();
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch('http://localhost:8000/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Image upload failed');
       }
-    };
-    reader.readAsDataURL(file);
-    event.target.value = '';
+
+      const data = await response.json();
+      
+      if (editor && data.url) {
+        editor.chain().focus().setImage({ src: data.url }).run();
+      }
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      alert('이미지 업로드에 실패했습니다. 나중에 다시 시도해주세요.');
+    } finally {
+      event.target.value = '';
+    }
   };
 
   const themes = {
@@ -237,7 +253,7 @@ export const NewsletterEditor = forwardRef<NewsletterEditorRef, NewsletterEditor
         ol: `margin-top: 1em; margin-bottom: 1em; padding-left: 1.5em; font-size: 18px; color: ${currentTheme.style.color};`,
         li: `margin-top: 0.5em; margin-bottom: 0.5em; line-height: 1.75; font-size: 18px; color: ${currentTheme.style.color};`,
         blockquote: 'margin-top: 1.5em; margin-bottom: 1.5em; font-size: 18px;',
-        img: 'max-width: 100%; height: auto; border-radius: 8px; margin: 1.5em 0;',
+        img: 'display: block; max-width: 100%; height: auto; border-radius: 8px; margin: 1.5em 0; -ms-interpolation-mode: bicubic;',
         a: `text-decoration: underline; text-underline-offset: 4px; color: ${currentTheme.style.color};`,
         hr: 'border: 0; border-top: 1px solid #e5e7eb; margin: 2em 0;'
       };
@@ -254,7 +270,7 @@ export const NewsletterEditor = forwardRef<NewsletterEditorRef, NewsletterEditor
         'theme-soft': {
           h1: 'color: #1e293b; text-align: center; margin-bottom: 1.2em;',
           h2: 'background-color: #e0e7ff; color: #3730a3; padding: 0.4em 0.8em; border-radius: 12px; display: inline-block; font-size: 1.5em;',
-          h3: 'color: #4338ca;',
+          h3: 'color: #4338ca; font-size: 1.35em; font-weight: 700;',
           blockquote: 'background-color: #ffffff; color: #475569; padding: 1.5em; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); border: 1px solid #f1f5f9; font-style: normal;',
           a: 'color: #6366f1; text-decoration: none; border-bottom: 2px solid #c7d2fe; font-weight: 500;',
           img: 'max-width: 100%; height: auto; border-radius: 16px; margin: 1.5em 0; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);',
@@ -353,30 +369,55 @@ export const NewsletterEditor = forwardRef<NewsletterEditorRef, NewsletterEditor
       editorContent = doc.body.innerHTML;
     }
 
-    return `<!DOCTYPE html>
-<html lang="ko">
+    return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AI 뉴스레터</title>
-  <style>
+  <style type="text/css">
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;700&family=Noto+Serif+KR:wght@400;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Space+Grotesk:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+    
+    /* Email Client Resets */
+    table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+    img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+    body, table, td, p, a, li, blockquote { -ms-text-size-adjust: 100%; -webkit-text-size-adjust: 100%; }
+    
+    /* Responsive */
+    @media only screen and (max-width: 600px) {
+      .content-table {
+        width: 100% !important;
+      }
+      .content-td {
+        padding: 20px !important;
+      }
+    }
   </style>
 </head>
-<body style="margin: 0; padding: 0; background-color: ${currentTheme.style.backgroundColor}; ${'backgroundImage' in currentTheme.style ? `background-image: ${(currentTheme.style as any).backgroundImage};` : ''} font-family: ${currentTheme.style.fontFamily}, sans-serif; font-size: 18px; line-height: 1.75; color: ${currentTheme.style.color}; min-height: 100vh;">
-  <table width="100%" border="0" cellspacing="0" cellpadding="0" align="center" bgcolor="${currentTheme.style.backgroundColor}" style="background-color: ${currentTheme.style.backgroundColor}; ${'backgroundImage' in currentTheme.style ? `background-image: ${(currentTheme.style as any).backgroundImage};` : ''} width: 100%; text-align: center;">
+<body style="margin: 0; padding: 0; background-color: ${currentTheme.style.backgroundColor}; ${'backgroundImage' in currentTheme.style ? `background-image: ${(currentTheme.style as any).backgroundImage};` : ''} -webkit-font-smoothing: antialiased; width: 100% !important;">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" bgcolor="${currentTheme.style.backgroundColor}" style="background-color: ${currentTheme.style.backgroundColor}; ${'backgroundImage' in currentTheme.style ? `background-image: ${(currentTheme.style as any).backgroundImage};` : ''} width: 100%;">
     <tr>
-      <td align="center" valign="top">
-        <table border="0" cellspacing="0" cellpadding="0" align="center" bgcolor="transparent" style="background-color: transparent; max-width: 800px; width: 100%; margin: 0 auto; text-align: left;">
+      <td align="center" valign="top" style="padding: 20px 0;">
+        <!--[if mso]>
+        <table align="center" border="0" cellspacing="0" cellpadding="0" width="600" style="width:600px;">
+        <tr>
+        <td valign="top">
+        <![endif]-->
+        <table class="content-table" width="600" border="0" cellspacing="0" cellpadding="0" align="center" style="width: 600px; max-width: 600px; margin: 0 auto; text-align: left; background-color: transparent;">
           <tr>
-            <td style="padding: 20px; font-size: 18px; font-family: ${currentTheme.style.fontFamily}, sans-serif; color: ${currentTheme.style.color};">
+            <td class="content-td" style="padding: 40px; font-size: 18px; line-height: 1.75; font-family: ${currentTheme.style.fontFamily}, sans-serif; color: ${currentTheme.style.color};">
               <div>
                 ${editorContent}
               </div>
             </td>
           </tr>
         </table>
+        <!--[if mso]>
+        </td>
+        </tr>
+        </table>
+        <![endif]-->
       </td>
     </tr>
   </table>

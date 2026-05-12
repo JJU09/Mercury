@@ -203,6 +203,9 @@
 .theme-soft .prose {
   font-family: 'Pretendard', 'Noto Sans KR', 'Inter', sans-serif;
 }
+.theme-soft .prose h3 {
+  @apply text-indigo-800 font-bold text-[1.35em];
+}
 .theme-soft .prose h2 {
   @apply bg-indigo-50/80 text-indigo-900 rounded-2xl inline-block px-6 py-2.5 font-bold shadow-[0_8px_30px_rgb(0,0,0,0.04)];
 }
